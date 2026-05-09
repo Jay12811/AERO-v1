@@ -9,6 +9,7 @@ import { Mic, MicOff, Power, Shield, Cpu, Activity, Battery, Terminal, Globe, Th
 import { chatWithJarvis } from './services/gemini';
 import { ArcReactor, HexGrid, SystemBar, LogStream, CircularHUD, DataWidget, BitMap, CentralVisualizer } from './components/HUD';
 import { ChatInterface, VoiceVisualizer } from './components/Chat';
+import { TerminalGate } from './components/TerminalGate';
 import { DataPanel } from './components/DataPanel';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -27,6 +28,7 @@ export default function App() {
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = React.useState(false);
   const [recognition, setRecognition] = React.useState<any>(null);
   const [time, setTime] = React.useState(new Date());
@@ -114,6 +116,10 @@ export default function App() {
     setMessages([{ role: 'model', text: greeting }]);
     speak(greeting);
   };
+
+  if (!isAuthenticated) {
+    return <TerminalGate onUnlock={() => setIsAuthenticated(true)} />;
+  }
 
   if (!isInitialized) {
     return (
