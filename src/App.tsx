@@ -77,13 +77,17 @@ export default function App() {
     }));
 
     const response = await chatWithJarvis(text, history);
+    
+    // Clean text by removing any asterisks (markdown bold/italic markers)
+    const cleanText = response.text.replace(/\*/g, '');
+
     setMessages(prev => [...prev, { 
       role: 'model' as const, 
-      text: response.text,
+      text: cleanText,
       image: response.image 
     }]);
     setIsPending(false);
-    speak(response.text);
+    speak(cleanText);
   };
 
   const toggleListening = () => {
