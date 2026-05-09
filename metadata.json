@@ -1,0 +1,12 @@
+{
+  "name": "AERO",
+  "description": "A sophisticated AI personal assistant with a holographic HUD interface and voice capabilities, renamed to AERO.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI interaction",
+    "Voice interface",
+    "Holographic UI"
+  ]
+}
