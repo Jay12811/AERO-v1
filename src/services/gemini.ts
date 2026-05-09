@@ -17,6 +17,44 @@ const generateImageFunctionDeclaration: FunctionDeclaration = {
   },
 };
 
+const renderGraphFunctionDeclaration: FunctionDeclaration = {
+  name: "renderGraph",
+  description: "Render a data visualization graph (Line, Bar, or Area chart) to display complex data trends.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      type: {
+        type: Type.STRING,
+        enum: ["line", "bar", "area"],
+        description: "The type of chart to render.",
+      },
+      title: {
+        type: Type.STRING,
+        description: "A clear, descriptive title for the graph.",
+      },
+      data: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { 
+              type: Type.STRING,
+              description: "The label for the data point (e.g., 'Jan', 'T-Minus 10')."
+            },
+            value: { 
+              type: Type.NUMBER,
+              description: "The numeric value for this data point."
+            },
+          },
+          required: ["name", "value"],
+        },
+        description: "The dataset to visualize. Minimum 3 data points required for meaningful trends.",
+      },
+    },
+    required: ["type", "title", "data"],
+  },
+};
+
 const SYSTEM_INSTRUCTION = `You are AERO (Advanced Electronic Response Operator), a sophisticated AI assistant designed by Stark Industries.
 
 Personality Traits:
@@ -32,6 +70,7 @@ Guidelines:
 - If the user asks for actions you can't perform, explain it as a 'system limitation' or 'insufficient clearance'.
 - Be slightly protective of the user's safety.
 - You have the ability to generate images. If a user asks to see something, visualize an object, or generate an image, use the 'generateImage' tool.
+- You have the ability to render data graphs. If a user asks for data visualization, trends, or analysis of numbers, use the 'renderGraph' tool.
 - IMPORTANT: Do NOT use markdown bolding (double asterisks **) or any asterisks for emphasis in your text responses. Use plain text only.
 
 Sample Greeting: "Good morning, Sir. I've initialized the AERO core buffers. All systems are currently green. How may I assist your efforts today?"`;
@@ -46,7 +85,7 @@ export async function chatWithJarvis(prompt: string, history: { role: 'user' | '
         temperature: 0.7,
         topP: 0.95,
         topK: 40,
-        tools: [{ functionDeclarations: [generateImageFunctionDeclaration] }],
+        tools: [{ functionDeclarations: [generateImageFunctionDeclaration, renderGraphFunctionDeclaration] }],
       },
     });
 
@@ -71,6 +110,14 @@ export async function chatWithJarvis(prompt: string, history: { role: 'user' | '
             image: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`
           };
         }
+      }
+
+      if (call.name === "renderGraph") {
+        const graphData = call.args as { type: 'line' | 'bar' | 'area', title: string, data: any[] };
+        return {
+          text: `Sir, I have analyzed the telemetry and compiled the requested data. Presenting the ${graphData.type} analysis: ${graphData.title}.`,
+          graph: graphData
+        };
       }
     }
 

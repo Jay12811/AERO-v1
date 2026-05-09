@@ -5,17 +5,24 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Power, Shield, Cpu, Activity, Battery, Terminal, Globe, Thermometer, Wind, ChevronRight, ChevronLeft, LayoutDashboard } from 'lucide-react';
+import { Mic, MicOff, Power, Shield, Cpu, Activity, Battery, Terminal, Globe, Thermometer, Wind, ChevronRight, ChevronLeft, LayoutDashboard, X } from 'lucide-react';
 import { chatWithJarvis } from './services/gemini';
 import { ArcReactor, HexGrid, SystemBar, LogStream, CircularHUD, DataWidget, BitMap, CentralVisualizer } from './components/HUD';
 import { ChatInterface, VoiceVisualizer } from './components/Chat';
 import { DataPanel } from './components/DataPanel';
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 // --- Voice Recognition Constants ---
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 export default function App() {
-  const [messages, setMessages] = React.useState<{ role: 'user' | 'model'; text: string; image?: string }[]>([]);
+  const [messages, setMessages] = React.useState<{ 
+    role: 'user' | 'model'; 
+    text: string; 
+    image?: string;
+    graph?: { type: 'line' | 'bar' | 'area'; title: string; data: any[] };
+  }[]>([]);
+  const [activeHUDGraph, setActiveHUDGraph] = React.useState<{ type: 'line' | 'bar' | 'area'; title: string; data: any[] } | null>(null);
   const [isPending, setIsPending] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
@@ -84,7 +91,8 @@ export default function App() {
     setMessages(prev => [...prev, { 
       role: 'model' as const, 
       text: cleanText,
-      image: response.image 
+      image: response.image,
+      graph: response.graph
     }]);
     setIsPending(false);
     speak(cleanText);
@@ -286,6 +294,114 @@ export default function App() {
         <CentralVisualizer isSpeaking={isSpeaking} isListening={isListening} />
       </div>
 
+      {/* HUD Graph Projection */}
+      <AnimatePresence>
+        {activeHUDGraph && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 50, rotateX: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -50, rotateX: -20 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] w-full max-w-2xl px-8 pointer-events-auto"
+            style={{ perspective: '1000px' }}
+          >
+            <div className="relative bg-sky-950/20 border border-sky-400/30 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_80px_rgba(14,165,233,0.3)] group overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-sky-400/5 to-transparent pointer-events-none" />
+              
+              <button 
+                onClick={() => setActiveHUDGraph(null)}
+                className="absolute top-6 right-6 w-10 h-10 bg-sky-950/80 border border-sky-400/50 rounded-full flex items-center justify-center text-sky-400 hover:bg-sky-400 hover:text-black transition-all z-50 shadow-[0_0_15px_rgba(14,165,233,0.3)]"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="flex items-center justify-between mb-8 border-b border-sky-400/20 pb-6">
+                <div className="flex items-center gap-4">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Activity size={24} className="text-sky-400" />
+                  </motion.div>
+                  <div>
+                    <span className="text-xs font-display font-black tracking-[0.4em] text-sky-400 uppercase glow-text">Live_Analytics // Project_Extraction</span>
+                    <h3 className="text-xl font-display font-black text-white uppercase tracking-wider">{activeHUDGraph.title}</h3>
+                  </div>
+                </div>
+                <div className="text-[10px] font-mono text-sky-400/50 text-right">
+                  <div>FREQ: 2.4 GHZ</div>
+                  <div>SYNC: {time.toLocaleTimeString()}</div>
+                </div>
+              </div>
+
+              <div className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  {activeHUDGraph.type === 'bar' ? (
+                    <BarChart data={activeHUDGraph.data}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#0ea5e910" vertical={false} />
+                      <XAxis dataKey="name" stroke="#0ea5e980" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#0ea5e980" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#082f49', border: '1px solid #0ea5e940', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                        itemStyle={{ color: '#bae6fd' }}
+                      />
+                      <Bar dataKey="value" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  ) : activeHUDGraph.type === 'area' ? (
+                    <AreaChart data={activeHUDGraph.data}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#0ea5e910" vertical={false} />
+                      <XAxis dataKey="name" stroke="#0ea5e980" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#0ea5e980" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#082f49', border: '1px solid #0ea5e940', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                        itemStyle={{ color: '#bae6fd' }}
+                      />
+                      <Area type="monotone" dataKey="value" stroke="#0ea5e9" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                    </AreaChart>
+                  ) : (
+                    <LineChart data={activeHUDGraph.data}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#0ea5e910" vertical={false} />
+                      <XAxis dataKey="name" stroke="#0ea5e980" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#0ea5e980" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#082f49', border: '1px solid #0ea5e940', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                        itemStyle={{ color: '#bae6fd' }}
+                      />
+                      <Line type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={4} dot={{ r: 6, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, fill: '#fff' }} />
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-sky-400/10 flex justify-between items-center">
+                <div className="flex gap-6">
+                  <div className="flex items-center gap-2 text-[9px] font-mono text-sky-400/70 uppercase tracking-widest">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.6)]" />
+                    Neural_Bridge: Synchronized
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px] font-mono text-sky-400/70 uppercase tracking-widest">
+                    <div className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(14,165,233,0.6)]" />
+                    Output_Stream: Stable
+                  </div>
+                </div>
+                <div className="text-[9px] font-mono text-sky-400/30 uppercase tracking-[0.2em]">Restricted_Visual_Data // 0x44FF2</div>
+              </div>
+
+              {/* Decorative corners */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-l-2 border-t-2 border-sky-400/30 rounded-tl-xl" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-r-2 border-t-2 border-sky-400/30 rounded-tr-xl" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-l-2 border-b-2 border-sky-400/30 rounded-bl-xl" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-r-2 border-b-2 border-sky-400/30 rounded-br-xl" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom Center: Interaction HUD */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-6 w-full md:w-auto px-4 pointer-events-none">
         <div className="pointer-events-auto">
@@ -317,7 +433,8 @@ export default function App() {
         <ChatInterface 
           messages={messages} 
           isPending={isPending} 
-          onSend={handleSend} 
+          onSend={handleSend}
+          onProjectGraph={setActiveHUDGraph}
         />
       </div>
 

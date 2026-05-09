@@ -2,13 +2,19 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Download, FileText, Database, Share2 } from 'lucide-react';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface DataPanelProps {
-  messages: { role: string; text: string; image?: string }[];
+  messages: { 
+    role: string; 
+    text: string; 
+    image?: string;
+    graph?: { type: 'line' | 'bar' | 'area'; title: string; data: any[] };
+  }[];
 }
 
 export const DataPanel: React.FC<DataPanelProps> = ({ messages }) => {
-  const downloadTranscript = () => {
+  const downloadTranscript = async () => {
     const doc = new jsPDF();
     
     // Stark Industries Header
@@ -27,38 +33,82 @@ export const DataPanel: React.FC<DataPanelProps> = ({ messages }) => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - (margin * 2);
 
-    messages.forEach((msg) => {
-      // Role Label
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(msg.role === 'user' ? 50 : 14, 165, 233);
-      doc.text(msg.role === 'user' ? "[DIRECT_INPUT]" : "[AERO_OUTPUT]", margin, y);
-      y += 5;
+    // Find all graph elements in the DOM
+    const graphElements = Array.from(document.querySelectorAll('.data-graph-container'));
 
-      // Text Content
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      
-      const lines = doc.splitTextToSize(msg.text, maxWidth);
-      doc.text(lines, margin, y);
-      
-      y += (lines.length * 5) + 10;
+    for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        
+        // Role Label
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(msg.role === 'user' ? 50 : 14, 165, 233);
+        doc.text(msg.role === 'user' ? "[DIRECT_INPUT]" : "[AERO_OUTPUT]", margin, y);
+        y += 5;
 
-      // Image notice if exists
-      if (msg.image) {
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text("* [Attachment: Generated Visual Data Processed]", margin, y);
-        y += 10;
-      }
+        // Text Content
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        
+        const lines = doc.splitTextToSize(msg.text, maxWidth);
+        doc.text(lines, margin, y);
+        y += (lines.length * 5) + 5;
 
-      // Page break if too close to bottom
-      if (y > 270) {
-        doc.addPage();
-        y = 30;
-      }
-    });
+        // Graph Inclusion
+        if (msg.graph) {
+            // Find corresponding graph element if possible (by order)
+            const graphIndex = messages.slice(0, i + 1).filter(m => m.graph).length - 1;
+            const element = graphElements[graphIndex] as HTMLElement;
+
+            if (element) {
+                try {
+                    const canvas = await html2canvas(element, { 
+                        backgroundColor: '#020617',
+                        scale: 2,
+                        logging: false
+                    });
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = maxWidth;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                    // Check if image fits on page
+                    if (y + imgHeight > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+
+                    doc.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight);
+                    y += imgHeight + 10;
+                } catch (e) {
+                    console.error("Failed to capture graph:", e);
+                    doc.setFontSize(8);
+                    doc.text("[Graph Data Excluded: Rendering Error]", margin, y);
+                    y += 10;
+                }
+            } else {
+                doc.setFontSize(8);
+                doc.text(`[Graph: ${msg.graph.title}]`, margin, y);
+                y += 10;
+            }
+        }
+
+        // Image notice
+        if (msg.image) {
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text("* [Attachment: Generated Visual Data Processed (See Digital Core)]", margin, y);
+            y += 10;
+        }
+
+        y += 5;
+
+        // Page break
+        if (y > 270) {
+          doc.addPage();
+          y = 30;
+        }
+    }
 
     doc.save(`AERO_Extraction_${Date.now()}.pdf`);
   };

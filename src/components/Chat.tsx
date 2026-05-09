@@ -1,11 +1,142 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Send, Volume2, VolumeX, Terminal, X, Maximize2 } from 'lucide-react';
+import { Mic, Send, Volume2, VolumeX, Terminal, X, Maximize2, BarChart2 } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 interface VoiceVisualizerProps {
   isListening: boolean;
   isSpeaking: boolean;
 }
+
+const GraphDisplay: React.FC<{ 
+  graph: { type: 'line' | 'bar' | 'area'; title: string; data: any[] };
+  onProject?: () => void;
+}> = ({ graph, onProject }) => {
+  const [isZoomed, setIsZoomed] = React.useState(false);
+
+  const renderChart = (isFullscreen = false) => {
+    const fontSize = isFullscreen ? 12 : 10;
+    switch (graph.type) {
+      case 'bar':
+        return (
+          <BarChart data={graph.data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#0ea5e920" />
+            <XAxis dataKey="name" stroke="#0ea5e980" fontSize={fontSize} />
+            <YAxis stroke="#0ea5e980" fontSize={fontSize} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#082f49', border: '1px solid #0ea5e940', fontSize: '10px' }}
+              itemStyle={{ color: '#bae6fd' }}
+            />
+            <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        );
+      case 'area':
+        return (
+          <AreaChart data={graph.data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#0ea5e920" />
+            <XAxis dataKey="name" stroke="#0ea5e980" fontSize={fontSize} />
+            <YAxis stroke="#0ea5e980" fontSize={fontSize} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#082f49', border: '1px solid #0ea5e940', fontSize: '10px' }}
+              itemStyle={{ color: '#bae6fd' }}
+            />
+            <Area type="monotone" dataKey="value" stroke="#0ea5e9" fill="#0ea5e940" />
+          </AreaChart>
+        );
+      default:
+        return (
+          <LineChart data={graph.data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#0ea5e920" />
+            <XAxis dataKey="name" stroke="#0ea5e980" fontSize={fontSize} />
+            <YAxis stroke="#0ea5e980" fontSize={fontSize} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#082f49', border: '1px solid #0ea5e940', fontSize: '10px' }}
+              itemStyle={{ color: '#bae6fd' }}
+            />
+            <Line type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2} dot={{ fill: '#0ea5e9' }} />
+          </LineChart>
+        );
+    }
+  };
+
+  return (
+    <>
+      <div className="mt-4 p-4 bg-black/40 border border-sky-400/30 rounded-xl overflow-hidden data-graph-container group">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart2 size={14} className="text-sky-400" />
+            <span className="text-[10px] font-mono text-sky-400 uppercase tracking-widest">{graph.title}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {onProject && (
+              <button 
+                onClick={onProject}
+                title="Project to HUD"
+                className="p-1.5 bg-sky-400/10 hover:bg-sky-400/20 text-sky-400 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <Maximize2 size={12} />
+              </button>
+            )}
+            <button 
+              onClick={() => setIsZoomed(true)}
+              title="Zoom Analysis"
+              className="p-1.5 bg-sky-400/10 hover:bg-sky-400/20 text-sky-400 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <BarChart2 size={12} />
+            </button>
+          </div>
+        </div>
+        <div className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            {renderChart()}
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isZoomed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-8"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-4xl bg-slate-900 border border-sky-400/30 rounded-2xl p-8 relative shadow-[0_0_50px_rgba(14,165,233,0.3)]"
+            >
+              <button
+                onClick={() => setIsZoomed(false)}
+                className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
+                id="close-zoom-graph"
+              >
+                <X size={24} className="text-sky-400" />
+              </button>
+              
+              <div className="flex items-center gap-3 mb-8">
+                <BarChart2 size={24} className="text-sky-400" />
+                <h2 className="text-xl font-display font-black text-sky-400 uppercase tracking-[0.2em]">{graph.title}</h2>
+              </div>
+
+              <div className="h-[500px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  {renderChart(true)}
+                </ResponsiveContainer>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-sky-400/10 flex justify-between items-center text-[10px] font-mono text-sky-400/50 uppercase tracking-widest">
+                <span>Core Analytics // Visual Matrix</span>
+                <span>System Time: {new Date().toLocaleTimeString()}</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 export const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({ isListening, isSpeaking }) => {
   return (
@@ -31,8 +162,9 @@ export const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({ isListening, i
 export const ChatInterface: React.FC<{
   onSend: (msg: string) => void;
   isPending: boolean;
-  messages: { role: string; text: string; image?: string }[];
-}> = ({ onSend, isPending, messages }) => {
+  messages: { role: string; text: string; image?: string; graph?: { type: 'line' | 'bar' | 'area'; title: string; data: any[] } }[];
+  onProjectGraph?: (graph: any) => void;
+}> = ({ onSend, isPending, messages, onProjectGraph }) => {
   const [input, setInput] = React.useState('');
   const [zoomedImage, setZoomedImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -96,6 +228,13 @@ export const ChatInterface: React.FC<{
                   {msg.role === 'user' ? 'DIRECT_INPUT' : 'AERO_OUTPUT'}
                 </div>
                 {msg.text}
+                
+                {msg.graph && (
+                  <GraphDisplay 
+                    graph={msg.graph} 
+                    onProject={onProjectGraph ? () => onProjectGraph(msg.graph) : undefined} 
+                  />
+                )}
                 
                 {msg.image && (
                   <div 
