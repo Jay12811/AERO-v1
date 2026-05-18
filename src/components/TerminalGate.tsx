@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, Cpu, Key, Lock, Terminal as TerminalIcon } from 'lucide-react';
+import { ShieldAlert, Cpu, Key, Lock, Terminal as TerminalIcon, Wind, Activity, Mic } from 'lucide-react';
 
 interface TerminalGateProps {
   onUnlock: () => void;
@@ -15,7 +15,6 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
     e.preventDefault();
     setIsProcessing(true);
     
-    // Artificial processing delay for "cool" factor
     setTimeout(() => {
       if (password === 'JARVISTYPESYSTEM123') {
         onUnlock();
@@ -30,7 +29,7 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
 
   return (
     <div className="fixed inset-0 z-[999] bg-slate-950 flex items-center justify-center overflow-hidden">
-      {/* Matrix-like background effect */}
+      {/* Matrix background */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#020617_100%)]" />
         <div className="grid grid-cols-12 h-full w-full">
@@ -49,7 +48,7 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative w-full max-w-md px-6"
+        className="relative w-full max-w-md px-6 text-center"
       >
         <div className="bg-slate-900/80 border border-sky-400/30 rounded-2xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(14,165,233,0.2)]">
           <div className="flex flex-col items-center mb-8">
@@ -65,7 +64,7 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
             <p className="text-[10px] font-mono text-sky-400/50 uppercase mt-2 tracking-widest">Biometric Lock // Neural Interface Protocol</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 text-left">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Key className="text-sky-400/50" size={18} />
@@ -90,7 +89,7 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
                   ? 'bg-sky-400/20 text-sky-400 cursor-not-allowed' 
                   : error 
                     ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'
-                    : 'bg-sky-400 text-black hover:bg-sky-300 shadow-[0_0_20px_rgba(14,165,233,0.4)]'
+                    : 'bg-sky-400 text-black hover:bg-sky-300 shadow-[0_0_20_px_rgba(14,165,233,0.4)]'
               }`}
             >
               {isProcessing ? (
@@ -116,18 +115,17 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
               )}
             </motion.button>
           </form>
-
+          
           <div className="mt-8 pt-6 border-t border-sky-400/10 flex justify-between items-center text-[8px] font-mono text-sky-400/30 uppercase tracking-[0.2em]">
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Terminal_Offline
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Neural_Engine_Ready
             </div>
             <span>STARK_INDUSTRIES // v4.2.0</span>
           </div>
         </div>
       </motion.div>
 
-      {/* Decorative HUD corners */}
       <div className="fixed top-8 left-8 w-12 h-12 border-l border-t border-sky-400/20" />
       <div className="fixed top-8 right-8 w-12 h-12 border-r border-t border-sky-400/20" />
       <div className="fixed bottom-8 left-8 w-12 h-12 border-l border-b border-sky-400/20" />
@@ -135,3 +133,4 @@ export const TerminalGate: React.FC<TerminalGateProps> = ({ onUnlock }) => {
     </div>
   );
 };
+

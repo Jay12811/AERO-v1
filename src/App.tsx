@@ -32,6 +32,78 @@ export default function App() {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = React.useState(false);
   const [recognition, setRecognition] = React.useState<any>(null);
   const [time, setTime] = React.useState(new Date());
+  const [clapCount, setClapCount] = React.useState(0);
+  const [micLevel, setMicLevel] = React.useState(0);
+
+  const clapCountRef = React.useRef(0);
+  const lastClapTimeRef = React.useRef(0);
+
+  React.useEffect(() => {
+    if (isAuthenticated && !isInitialized) {
+      let javascriptNode: ScriptProcessorNode | null = null;
+      let stream: MediaStream | null = null;
+
+      const startDetection = async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const analyser = audioContext.createAnalyser();
+          const microphone = audioContext.createMediaStreamSource(stream);
+          javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+          analyser.smoothingTimeConstant = 0.3;
+          analyser.fftSize = 1024;
+
+          microphone.connect(analyser);
+          analyser.connect(javascriptNode);
+          javascriptNode.connect(audioContext.destination);
+
+          const CLAP_THRESHOLD = 0.12;
+          const CLAP_COOLDOWN = 400;
+          const RESET_TIMEOUT = 2500; // Reset if second clap doesn't happen in 2.5s
+
+          javascriptNode.onaudioprocess = () => {
+            const array = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(array);
+            let values = 0;
+            for (let i = 0; i < array.length; i++) values += array[i];
+            const average = values / array.length;
+            const normalized = average / 128;
+            setMicLevel(normalized);
+
+            const now = Date.now();
+
+            // Auto-reset if too long between claps
+            if (clapCountRef.current === 1 && now - lastClapTimeRef.current > RESET_TIMEOUT) {
+              clapCountRef.current = 0;
+              setClapCount(0);
+            }
+
+            if (normalized > CLAP_THRESHOLD && now - lastClapTimeRef.current > CLAP_COOLDOWN) {
+              clapCountRef.current += 1;
+              const currentCount = clapCountRef.current;
+              setClapCount(currentCount);
+              lastClapTimeRef.current = now;
+
+              if (currentCount === 2) {
+                if (javascriptNode) javascriptNode.onaudioprocess = null;
+                initializeSystems();
+              }
+            }
+          };
+        } catch (err) {
+          console.error("Mic access denied for initialization", err);
+        }
+      };
+
+      startDetection();
+
+      return () => {
+        if (javascriptNode) javascriptNode.onaudioprocess = null;
+        if (stream) stream.getTracks().forEach(track => track.stop());
+      };
+    }
+  }, [isAuthenticated, isInitialized]);
 
   React.useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -126,7 +198,7 @@ export default function App() {
       <div className="h-screen w-screen flex flex-col items-center justify-start pt-[20vh] bg-slate-950 text-sky-400 font-display overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.15)_0%,transparent_70%)]" />
         
-        <motion.button
+        <motion.div
           onClick={initializeSystems}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -140,23 +212,43 @@ export default function App() {
           
           <ArcReactor />
           
-          <div className="absolute bottom-[-100px] flex flex-col items-center gap-4">
-            <motion.div 
-               animate={{ opacity: [0.4, 1, 0.4] }}
-               transition={{ duration: 2, repeat: Infinity }}
-               className="text-[10px] font-mono tracking-[0.6em] text-sky-400/60 uppercase whitespace-nowrap"
-            >
-              System Authorization Required
-            </motion.div>
-            <div className="px-12 py-4 border border-sky-400 bg-sky-950/40 backdrop-blur-md rounded-full group-hover:bg-sky-400 group-hover:text-black transition-all shadow-[0_0_30px_rgba(14,165,233,0.4)] glow-border">
-               <span className="text-sm font-black tracking-[0.4em] uppercase italic">Engage AERO Core</span>
+          <div className="absolute bottom-[-140px] flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <motion.div 
+                 animate={{ opacity: [0.4, 1, 0.4] }}
+                 transition={{ duration: 2, repeat: Infinity }}
+                 className="text-[10px] font-mono tracking-[0.6em] text-sky-400/60 uppercase whitespace-nowrap"
+              >
+                {clapCount === 0 ? "Neural Synchronization Pending" : clapCount === 1 ? "Secondary Impulse Required" : "Authentication Confirmed"}
+              </motion.div>
+              
+              {/* Clap indicators */}
+              <div className="flex gap-4 mb-2">
+                <div className={`w-2 h-2 rounded-full ${clapCount >= 1 ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-sky-900 border border-sky-400/30'}`} />
+                <div className={`w-2 h-2 rounded-full ${clapCount >= 2 ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-sky-900 border border-sky-400/30'}`} />
+              </div>
+
+              {/* Mic level bar */}
+              <div className="w-32 h-0.5 bg-sky-950 rounded-full overflow-hidden">
+                <motion.div 
+                  animate={{ width: `${Math.min(micLevel * 300, 100)}%` }}
+                  className="h-full bg-sky-400/50 shadow-[0_0_8px_#0ea5e9]"
+                />
+              </div>
             </div>
+
+            <button 
+              onClick={() => initializeSystems()}
+              className="px-12 py-4 border border-sky-400 bg-sky-950/40 backdrop-blur-md rounded-full group-hover:bg-sky-400 group-hover:text-black transition-all shadow-[0_0_30px_rgba(14,165,233,0.4)] glow-border pointer-events-auto"
+            >
+               <span className="text-sm font-black tracking-[0.4em] uppercase italic">Engage AERO Core</span>
+            </button>
           </div>
-        </motion.button>
+        </motion.div>
 
         {/* Protocol footer */}
         <div className="absolute bottom-12 text-[10px] font-mono opacity-40 uppercase tracking-widest text-center max-w-sm px-4">
-          Protocol: STARK_ASST_7 // Restricted Access Level: RED // AUTH_0x44FF2
+          Protocol: STARK_ASST_7 // Restricted Access Level: RED // AUTH_0x44FF2 // AWAIT_SOUND_AUTH
         </div>
       </div>
     );
