@@ -16,6 +16,127 @@ import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, X
 // --- Voice Recognition Constants ---
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
+const ActivationSequence: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
+  React.useEffect(() => {
+    const timer = setTimeout(onComplete, 3000);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <div className="fixed inset-0 z-[1000] bg-slate-950 flex items-center justify-center overflow-hidden">
+      {/* Central Holographic Flash */}
+      <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ 
+          scale: [0, 40], 
+          opacity: [0, 1, 1, 0],
+          rotate: [0, 180]
+        }}
+        transition={{ duration: 2.5, times: [0, 0.4, 0.8, 1], ease: "circIn" }}
+        className="absolute w-2 h-48 bg-sky-400 blur-3xl"
+      />
+      
+      {/* Kinetic Expansion Rings */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ 
+            scale: [0, 6], 
+            opacity: [0.8, 0],
+            borderWidth: ["8px", "0px"]
+          }}
+          transition={{ 
+            duration: 2, 
+            delay: i * 0.15,
+            ease: "easeOut"
+          }}
+          className="absolute w-64 h-64 border-2 border-sky-400 rounded-full"
+        />
+      ))}
+
+      {/* Hex Grid Surge */}
+      <div className="absolute inset-0 opacity-40">
+        <HexGrid />
+      </div>
+
+      {/* Lightning-fast Data Streams */}
+      <div className="absolute inset-0 flex flex-col justify-center pointer-events-none">
+        {[...Array(30)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ 
+              x: "300%",
+              opacity: [0, 0.7, 0]
+            }}
+            transition={{ 
+              duration: 0.4, 
+              delay: Math.random() * 2.5,
+              repeat: 1
+            }}
+            className="h-px w-full bg-gradient-to-r from-transparent via-sky-400 to-transparent"
+            style={{ top: `${Math.random() * 100}%` }}
+          />
+        ))}
+      </div>
+
+      {/* Core Interface Booting HUD */}
+      <div className="relative z-10 flex flex-col items-center gap-6">
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: [0.5, 1.2, 1], opacity: 1 }}
+          transition={{ duration: 0.8, ease: "backOut" }}
+          className="relative"
+        >
+          <div className="absolute inset-0 blur-2xl bg-sky-400/30 scale-150 animate-pulse" />
+          <div className="relative w-32 h-32 rounded-full border-4 border-sky-400 flex items-center justify-center bg-sky-950/80 shadow-[0_0_50px_rgba(14,165,233,0.5)]">
+            <Cpu className="text-sky-400 animate-spin-slow" size={64} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="text-center"
+        >
+          <h2 className="text-5xl font-display font-black text-white uppercase tracking-[0.6em] glow-text drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+            AERO_BOOT_CORE
+          </h2>
+          <div className="mt-6 flex flex-col gap-2">
+            <div className="flex justify-center gap-8 text-[10px] font-mono text-sky-400/80 uppercase tracking-[0.3em]">
+              <span className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping" />
+                NEURAL_LINK: ACTIVE
+              </span>
+              <span className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping" />
+                BUFFERS: SYNCED
+              </span>
+            </div>
+            <div className="w-96 h-1 bg-sky-900/30 rounded-full overflow-hidden mx-auto mt-4 border border-sky-400/20">
+              <motion.div
+                initial={{ width: "0%" }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 2.8, ease: "easeInOut" }}
+                className="h-full bg-sky-400 shadow-[0_0_20px_#0ea5e9]"
+              />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Horizontal Scanning Distortion */}
+      <motion.div
+        animate={{ top: ["0%", "100%", "0%"] }}
+        transition={{ duration: 0.8, repeat: 3, ease: "linear" }}
+        className="absolute left-0 right-0 h-2 bg-sky-400/20 blur-sm shadow-[0_0_20px_#0ea5e9] pointer-events-none"
+      />
+    </div>
+  );
+};
+
 export default function App() {
   const [messages, setMessages] = React.useState<{ 
     role: 'user' | 'model'; 
@@ -28,6 +149,7 @@ export default function App() {
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const [isActivating, setIsActivating] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = React.useState(false);
   const [recognition, setRecognition] = React.useState<any>(null);
@@ -87,7 +209,7 @@ export default function App() {
 
               if (currentCount === 2) {
                 if (javascriptNode) javascriptNode.onaudioprocess = null;
-                initializeSystems();
+                setIsActivating(true);
               }
             }
           };
@@ -130,7 +252,7 @@ export default function App() {
     }
   }, []);
 
-  const speak = (text: string) => {
+  const speak = React.useCallback((text: string) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -144,7 +266,7 @@ export default function App() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
-  };
+  }, []);
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
@@ -182,15 +304,24 @@ export default function App() {
     }
   };
 
-  const initializeSystems = () => {
+  const initializeSystems = React.useCallback(() => {
     setIsInitialized(true);
     const greeting = "Systems online. Good afternoon, Sir. AERO initialized. Neural pathways active and visual rendering cores primed. How may I assist your efforts today?";
     setMessages([{ role: 'model', text: greeting }]);
     speak(greeting);
-  };
+  }, [speak]);
+
+  const handleActivationComplete = React.useCallback(() => {
+    setIsActivating(false);
+    initializeSystems();
+  }, [initializeSystems]);
 
   if (!isAuthenticated) {
     return <TerminalGate onUnlock={() => setIsAuthenticated(true)} />;
+  }
+
+  if (isActivating) {
+    return <ActivationSequence onComplete={handleActivationComplete} />;
   }
 
   if (!isInitialized) {
@@ -238,7 +369,7 @@ export default function App() {
             </div>
 
             <button 
-              onClick={() => initializeSystems()}
+              onClick={() => setIsActivating(true)}
               className="px-12 py-4 border border-sky-400 bg-sky-950/40 backdrop-blur-md rounded-full group-hover:bg-sky-400 group-hover:text-black transition-all shadow-[0_0_30px_rgba(14,165,233,0.4)] glow-border pointer-events-auto"
             >
                <span className="text-sm font-black tracking-[0.4em] uppercase italic">Engage AERO Core</span>
